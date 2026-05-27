@@ -101,6 +101,9 @@ func (r Message) ToParam() MessageParam {
 }
 
 func (r ContentBlockUnion) ToParam() ContentBlockParamUnion {
+	if raw := r.RawJSON(); raw != "" {
+		return param.Override[ContentBlockParamUnion](json.RawMessage(raw))
+	}
 	return r.AsAny().toParamUnion()
 }
 
