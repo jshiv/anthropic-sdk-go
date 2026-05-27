@@ -237,7 +237,9 @@ func (r WebSearchToolResultBlock) ToParam() WebSearchToolResultBlockParam {
 	var p WebSearchToolResultBlockParam
 	p.Type = r.Type
 	p.ToolUseID = r.ToolUseID
-	p.Content = r.Content.ToParam()
+	if raw := r.JSON.Content.Raw(); raw != "" {
+		p.Content = param.Override[WebSearchToolResultBlockParamContentUnion](json.RawMessage(raw))
+	}
 	if raw := r.JSON.Caller.Raw(); raw != "" {
 		p.Caller = param.Override[WebSearchToolResultBlockParamCallerUnion](json.RawMessage(raw))
 	}
