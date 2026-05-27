@@ -73,16 +73,24 @@ func (acc *Message) Accumulate(event MessageStreamEventUnion) error {
 		acc.JSON.raw = string(accJSON)
 	case ContentBlockStopEvent:
 		// Re-marshal the content block to update JSON.raw so that AsAny()
-		// returns the accumulated data rather than the original stream data
+		// returns the accumulated data rather than the original stream data.
+		// Skip for server-side tool results (web_search, web_fetch, etc.)
+		// which arrive complete in content_block_start with no deltas —
+		// re-marshaling them loses wire-format fidelity needed by ToParam().
 		if len(acc.Content) == 0 {
 			return fmt.Errorf("received event of type %s but there was no content block", event.Type)
 		}
 		contentBlock := &acc.Content[len(acc.Content)-1]
-		cbJSON, err := json.Marshal(contentBlock)
-		if err != nil {
-			return fmt.Errorf("error converting content block to JSON: %w", err)
+		switch contentBlock.Type {
+		case "web_search_tool_result", "web_fetch_tool_result":
+			// Already has correct JSON.raw from content_block_start
+		default:
+			cbJSON, err := json.Marshal(contentBlock)
+			if err != nil {
+				return fmt.Errorf("error converting content block to JSON: %w", err)
+			}
+			contentBlock.JSON.raw = string(cbJSON)
 		}
-		contentBlock.JSON.raw = string(cbJSON)
 	}
 
 	return nil
