@@ -109,8 +109,11 @@ func (r Message) ToParam() MessageParam {
 }
 
 func (r ContentBlockUnion) ToParam() ContentBlockParamUnion {
-	if raw := r.RawJSON(); raw != "" {
-		return param.Override[ContentBlockParamUnion](json.RawMessage(raw))
+	switch r.Type {
+	case "web_search_tool_result", "web_fetch_tool_result":
+		if raw := r.RawJSON(); raw != "" {
+			return param.Override[ContentBlockParamUnion](json.RawMessage(raw))
+		}
 	}
 	return r.AsAny().toParamUnion()
 }
