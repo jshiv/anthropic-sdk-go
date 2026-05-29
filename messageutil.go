@@ -114,6 +114,22 @@ func (r ContentBlockUnion) ToParam() ContentBlockParamUnion {
 		if raw := r.RawJSON(); raw != "" {
 			return param.Override[ContentBlockParamUnion](json.RawMessage(raw))
 		}
+	case "text":
+		// A text block that cites web_search results must be raw-passed
+		// too: the typed citation conversion (CitationsWebSearchResultLocation
+		// .toParamUnion) drops the result location's url/encrypted_index,
+		// which the API requires on the next turn ("web_search_result_location
+		// .url: Value should have at least 1 item, not 0"). Without this,
+		// multi-turn conversations that include a cited web_search answer
+		// 400 on replay.
+		for _, c := range r.AsText().Citations {
+			if c.Type == "web_search_result_location" {
+				if raw := r.RawJSON(); raw != "" {
+					return param.Override[ContentBlockParamUnion](json.RawMessage(raw))
+				}
+				break
+			}
+		}
 	}
 	return r.AsAny().toParamUnion()
 }
