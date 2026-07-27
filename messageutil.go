@@ -350,6 +350,15 @@ func (r WebFetchToolResultBlock) ToParam() WebFetchToolResultBlockParam {
 	var p WebFetchToolResultBlockParam
 	p.Type = r.Type
 	p.ToolUseID = r.ToolUseID
+	// Content and Caller have no typed ToParam conversion, so carry their
+	// wire JSON across verbatim. Without this the replayed block has no
+	// content at all and the fetched document is lost on the next turn.
+	if raw := r.JSON.Content.Raw(); raw != "" {
+		p.Content = param.Override[WebFetchToolResultBlockParamContentUnion](json.RawMessage(raw))
+	}
+	if raw := r.JSON.Caller.Raw(); raw != "" {
+		p.Caller = param.Override[WebFetchToolResultBlockParamCallerUnion](json.RawMessage(raw))
+	}
 	return p
 }
 
