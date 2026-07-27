@@ -99,11 +99,21 @@ func (acc *Message) Accumulate(event MessageStreamEventUnion) error {
 			return err
 		}
 		contentBlock := &acc.Content[event.Index]
-		cbJSON, err := json.Marshal(contentBlock)
-		if err != nil {
-			return fmt.Errorf("error converting content block to JSON: %w", err)
+		switch contentBlock.Type {
+		case "web_search_tool_result", "web_fetch_tool_result":
+			// Server-side tool results arrive complete in content_block_start
+			// and receive no deltas, so JSON.raw is already wire-faithful.
+			// Re-marshaling them round-trips through the flattened union
+			// struct, which loses the content array — the replayed turn then
+			// degrades to web_search_tool_result_error and the search results
+			// vanish. Leave the original wire JSON in place.
+		default:
+			cbJSON, err := json.Marshal(contentBlock)
+			if err != nil {
+				return fmt.Errorf("error converting content block to JSON: %w", err)
+			}
+			contentBlock.JSON.raw = string(cbJSON)
 		}
-		contentBlock.JSON.raw = string(cbJSON)
 	}
 
 	return nil
